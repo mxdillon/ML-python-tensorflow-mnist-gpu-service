@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# coding=utf-8
+
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from service import MNIST
 

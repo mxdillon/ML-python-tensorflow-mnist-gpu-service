@@ -1,17 +1,14 @@
 #!/usr/bin/python
+# coding=utf-8
 
 import os
 import sys
-import falcon
 import json
 import numpy as np
 import onnx
 import onnxruntime as rt
 import tensorflow as tf
 import time
-
-
-PORT_NUMBER = 8080
 
 
 class MNIST(object):
@@ -28,9 +25,10 @@ class MNIST(object):
 
         # Load the ONNX model and check the model is well formed
         if not os.path.exists("model.onnx"):
-            sys.exit("There needs to be a model located at '.model.onnx'. Tests will fail if this is not the case.")
+            sys.exit("There needs to be a model located at 'model.onnx'. Tests will fail if this is not the case.")
         self.model = onnx.load("model.onnx")
         onnx.checker.check_model(self.model)
+
         # Start inference session
         rt.set_default_logger_severity(0)
         self.sess = rt.InferenceSession("model.onnx")
@@ -65,42 +63,15 @@ class MNIST(object):
         payload["predicted"] = predicted
         return json.dumps(payload)
 
-    def on_get(self, req, resp, index: int):
+    def run_inference(self, index: int) -> json:
         """Handle HTTP GET request.
 
-        :param req: HTTP request
-        :type req: req
-        :param resp: HTTP response
-        :type resp: resp
         :param index: int 0-9999 indicating which test image will be processed by the model. Defined by user as part of
         the HTTP GET request
         :type index: int
-        :raises falcon.HTTPBadRequest: If user passes integer outside acceptable range, bad request raised
+        :return: json containing the predicted label and true label
+        :rtype: json
         """
-        if index < self.image_count:
-            test_image = self.prepare_x_test(image_in=self.x_test[index, :, :])
-            y_pred = self.sess.run(None, {self.input_name: test_image})[0]
-            resp.body = self.format_payload(index=index, y_pred=y_pred)
-            resp.status = falcon.HTTP_200
-        else:
-            raise falcon.HTTPBadRequest(
-                "Index Out of Range. ",
-                "The requested index must be between 0 and {:d}, inclusive.".format(
-                    self.image_count - 1
-                ),
-            )
-
-
-class Intro(object):
-    def on_get(self, req, resp):
-        """Handle HTTP GET request when no MNIST test image is specified.
-
-        :param req: HTTP GET request
-        :type req: req
-        :param resp: HTTP response
-        :type resp: resp
-        """
-        resp.body = '{"message": \
-                    "This service verifies a model using the MNIST Test data set. Invoke using the form \
-                    /mnist/<index of test image>. For example, /mnist/24"}'
-        resp.status = falcon.HTTP_200
+        test_image = self.prepare_x_test(image_in=self.x_test[index, :, :])
+        y_pred = self.sess.run(None, {self.input_name: test_image})[0]
+        return self.format_payload(index=index, y_pred=y_pred)
