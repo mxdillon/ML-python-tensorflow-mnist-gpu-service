@@ -19,9 +19,9 @@ import requests
                                                ('/mnist/test',
                                                 'Not found. Invoke using the form /mnist/<index of test image>. For '
                                                 'example, /mnist/24')])
-def test_request_response(get_free_port, thread, endpoint, expected):
+def test_request_response(mock_port, mock_thread, endpoint, expected):
     """Test that the correct messages are returned for each endpoint."""
-    url = f'http://localhost:{get_free_port}{endpoint}'
+    url = f'http://localhost:{mock_port}{endpoint}'
     response = requests.get(url)
     assert response.text == expected
 
@@ -32,8 +32,8 @@ def test_request_response(get_free_port, thread, endpoint, expected):
                                                ('/mnist', 404),
                                                ('/mni', 400),
                                                ('/mnist/test', 404)])
-def test_request_status(get_free_port, thread, endpoint, expected):
+def test_request_status(mock_port, mock_thread, endpoint, expected):
     """Test that the correct statuses are returned for each endpoint."""
-    url = f'http://localhost:{get_free_port}{endpoint}'
+    url = f'http://localhost:{mock_port}{endpoint}'
     response = requests.get(url)
     assert response.status_code == expected

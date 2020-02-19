@@ -32,9 +32,9 @@ def test_prepare_x_test(mnist_class, test_image):
     assert mnist_class.prepare_x_test(image_in=test_image).shape == (1, 28, 28, 1)
 
 
-def test_format_payload_keys(mnist_class, json_out):
+def test_format_payload_keys(json_out):
     assert list(json.loads(json_out).keys()) == ["label", "predicted"]
 
 
-def test_format_payload_values(mnist_class, json_out):
+def test_format_payload_values(json_out):
     assert list(json.loads(json_out).values()) == [7, 3]

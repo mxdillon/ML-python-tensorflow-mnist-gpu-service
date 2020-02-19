@@ -52,13 +52,12 @@ class MNIST(object):
 
         :param index: int 0-9999 indicating which test image will be processed by the model
         :type index: int
-        :param predicted: 10-dim array containing probability distribution over the 10 classes
-        :type predicted: int
+        :param y_pred: 10-dim array containing probability distribution over the 10 classes
+        :type y_pred: np.ndarray
         :return: json with structure {"label": int, "predicted": int}
         :rtype: json
         """
-        payload = {}
-        payload["label"] = int(self.y_test[index])
+        payload = {"label": int(self.y_test[index])}
         predicted = int(np.argmax(y_pred))
         payload["predicted"] = predicted
         return json.dumps(payload)

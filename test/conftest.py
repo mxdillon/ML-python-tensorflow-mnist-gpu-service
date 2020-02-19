@@ -34,24 +34,23 @@ def test_image():
 
 
 @pytest.fixture(scope='session')
-def get_free_port():
+def mock_port():
     """Find a free port to run mock server on."""
-    s = socket.socket(socket.AF_INET, type=socket.SOCK_STREAM)
-    s.bind(('localhost', 0))
-    _, port = s.getsockname()
-    s.close()
+    test_socket = socket.socket(socket.AF_INET, type=socket.SOCK_STREAM)
+    test_socket.bind(('localhost', 0))
+    _, port = test_socket.getsockname()
+    test_socket.close()
     return port
 
 
 @pytest.fixture(scope='session')
-def thread(get_free_port):
+def mock_thread(mock_port):
     """Set up mock server and run on a new thread.
 
     :param get_free_port: port to start server on
     :return: None
     """
-    mock_server_port = get_free_port
-    mock_server = HTTPServer(('', mock_server_port), MyHandler)
-    mock_server_thread = Thread(target=mock_server.serve_forever)
-    mock_server_thread.setDaemon(True)
-    mock_server_thread.start()
+    mock_server = HTTPServer(('', mock_port), MyHandler)
+    mock_thread = Thread(target=mock_server.serve_forever)
+    mock_thread.setDaemon(True)
+    mock_thread.start()
