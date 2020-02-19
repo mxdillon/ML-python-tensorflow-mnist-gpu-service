@@ -1,42 +1,55 @@
-from __future__ import unicode_literals
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from service import MNIST
 
-import multiprocessing
-import gunicorn.app.base
-import falcon
-import apiserver
-from gunicorn.six import iteritems
+PORT_NUMBER = 8080
 
 
-def number_of_workers():
-    return (multiprocessing.cpu_count() * 2) + 1
+class MyHandler(BaseHTTPRequestHandler):
 
+    def do_GET(self):
+        """Handle HTTP GET request.
 
-# Gunicorn HTTP server hosting Falcon API framework
-class StandaloneApplication(gunicorn.app.base.BaseApplication):
-    def __init__(self, api, options=None):
-        self.options = options or {}
-        self.application = api
-        apiserver.config(api)
-        super(StandaloneApplication, self).__init__()
+        If endpoint '/mnist/xxx' where 'xxx' is an integer [0-9999] the result of the prediction will be returned to
+        the user. If not, a helpful message will be displayed detailing the correct endpoint."""
+        mnist_inference = MNIST()
 
-    def load_config(self):
-        config = dict(
-            [
-                (key, value)
-                for key, value in iteritems(self.options)
-                if key in self.cfg.settings and value is not None
-            ]
-        )
-        for key, value in iteritems(config):
-            self.cfg.set(key.lower(), value)
+        path_components = self.path.split("/")
+        if path_components[1] == 'mnist':
 
-    def load(self):
-        return self.application
+            try:
+                index = int(path_components[2])
+                if index < mnist_inference.image_count:
+                    body = mnist_inference.run_inference(index)
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(bytes(body, "utf8"))
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    body = f"Invoke using the form /mnist/<index of test image>. Index must be in the range " \
+                           f"[0:{mnist_inference.image_count - 1}]. For example, /mnist/24"
+                    self.wfile.write(bytes(body, "utf8"))
+
+            except (IndexError, ValueError):
+                self.send_response(404)
+                self.end_headers()
+                body = "Not found. Invoke using the form /mnist/<index of test image>. For example, /mnist/24"
+                self.wfile.write(bytes(body, "utf8"))
+
+        else:
+            self.send_response(400)
+            self.end_headers()
+            body = "This service verifies a model using the MNIST Test data set. Invoke using the form /mnist/<index " \
+                   "of test image>. For example, /mnist/24"
+            self.wfile.write(bytes(body, "utf8"))
 
 
 if __name__ == "__main__":
-    options = {
-        "bind": "%s:%s" % ("0.0.0.0", "8080"),
-        "workers": number_of_workers(),
-    }
-    StandaloneApplication(falcon.API(), options).run()
+    try:
+        server = HTTPServer(('', PORT_NUMBER), MyHandler)
+        print('Started httpserver on port', PORT_NUMBER)
+        server.serve_forever()
+
+    except KeyboardInterrupt:
+        server.server_close()
+        print('Stopping server')
